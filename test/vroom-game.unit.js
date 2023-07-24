@@ -216,9 +216,18 @@ contract("VroomGame::Unit", ([owner, player]) => {
     expect(await vroomGame.isPickingClosed()).to.equal(true);
 
     await truffleAssert.reverts(
+      vroomGame.emergencyRetryRandomNumber({ from: player }),
+      "Only owner can retry random number"
+    );
+
+    await truffleAssert.reverts(
       vroomGame.pickWinner({ from: player }),
       "Only owner can pick a winner"
     );
+
+    // try to emergency retry random number
+    // to simulate a first time failure of chainlink
+    await vroomGame.emergencyRetryRandomNumber();
 
     // MOCK VRF RESPONSE FROM CHAINLINK
     // REQUEST WAS SENT FROM `closeRound` FUNCTION

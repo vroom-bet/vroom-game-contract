@@ -16,6 +16,7 @@ event Bet:
   player: address
   pick: uint256
   amount: uint256
+  round: uint256
 
 event PickingClosed:
   round: uint256
@@ -105,7 +106,7 @@ def bet(_pick: uint256, _amount: uint256) -> bool:
   self.roundsPlayersPicks[self.currentRound][msg.sender][_pick - 1] += _amount
   self.playersLockedBalances[msg.sender] += _amount
   self.balanceOf[msg.sender] -= _amount
-  log Bet(msg.sender, _pick, _amount)
+  log Bet(msg.sender, _pick, _amount, self.currentRound)
 
   return True
 
@@ -157,6 +158,15 @@ def pickWinner() -> uint256:
   log PickingOpened(self.currentRound)
 
   return winner
+
+@external
+def emergencyRetryRandomNumber() -> bool:
+  # for some reason if Chainlink VRF fails and returns same random number
+  # we can call this method to just retry the random number generation
+  assert msg.sender == self.owner, "Only owner can retry random number"
+  assert self.currentRound > 0, "Game has not started yet"
+  self.VRFConsumer.requestRandomWords()
+  return True
 
 @external
 def emergencyUnlockGame() -> bool:
