@@ -216,7 +216,7 @@ contract("VroomGame::Unit", ([owner, player]) => {
     expect(await vroomGame.isPickingClosed()).to.equal(true);
 
     await truffleAssert.reverts(
-      vroomGame.emergencyRetryRandomNumber({ from: player }),
+      vroomGame.emergencyOwnerRetryRandomNumber({ from: player }),
       "Only owner can retry random number"
     );
 
@@ -227,7 +227,7 @@ contract("VroomGame::Unit", ([owner, player]) => {
 
     // try to emergency retry random number
     // to simulate a first time failure of chainlink
-    await vroomGame.emergencyRetryRandomNumber();
+    await vroomGame.emergencyOwnerRetryRandomNumber();
 
     // MOCK VRF RESPONSE FROM CHAINLINK
     // REQUEST WAS SENT FROM `closeRound` FUNCTION
@@ -274,12 +274,12 @@ contract("VroomGame::Unit", ([owner, player]) => {
     const vroomGame = await VroomGame.deployed();
 
     await truffleAssert.reverts(
-      vroomGame.emergencyUnlockGame({ from: player }),
+      vroomGame.emergencyOwnerUnlockGame({ from: player }),
       "Only owner can unlock the game"
     );
 
     const beforeBalance = await vroomGame.balanceOf(player);
-    await vroomGame.emergencyUnlockGame();
+    await vroomGame.emergencyOwnerUnlockGame();
 
     expect(await vroomGame.isPickingClosed()).to.equal(true);
     expect((await vroomGame.balanceOf(player)).toString()).to.equal(
@@ -294,5 +294,21 @@ contract("VroomGame::Unit", ([owner, player]) => {
       vroomGame.bet(1, betAmount, { from: player }),
       "Round is closed"
     );
+  });
+
+  it("should allow to emergency withdraw", async () => {
+    const vroomGame = await VroomGame.deployed();
+    const usdt = await USDT.deployed();
+
+    await truffleAssert.reverts(
+      vroomGame.emergencyOwnerWithdraw({ from: player }),
+      "Only owner can emergency withdraw"
+    );
+
+    const beforeUSDTBalance = await usdt.balanceOf(owner);
+    await vroomGame.emergencyOwnerWithdraw();
+
+    const afterUSDTBalance = await usdt.balanceOf(owner);
+    expect(afterUSDTBalance.gt(beforeUSDTBalance)).to.equal(true);
   });
 });

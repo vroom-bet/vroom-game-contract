@@ -160,7 +160,7 @@ def pickWinner() -> uint256:
   return winner
 
 @external
-def emergencyRetryRandomNumber() -> bool:
+def emergencyOwnerRetryRandomNumber() -> bool:
   # for some reason if Chainlink VRF fails and returns same random number
   # we can call this method to just retry the random number generation
   assert msg.sender == self.owner, "Only owner can retry random number"
@@ -169,7 +169,7 @@ def emergencyRetryRandomNumber() -> bool:
   return True
 
 @external
-def emergencyUnlockGame() -> bool:
+def emergencyOwnerUnlockGame() -> bool:
   # this method is used to refund player balances stuck in a betting-round
   # for instance if `pickWinner()` runs out of gas, we can call this method (bug in contract?)
   # or if Chainlink VRF fails for some reason, we are relying on external services
@@ -191,6 +191,15 @@ def emergencyUnlockGame() -> bool:
       self.balanceOf[player] += lockedBalance
       self.playersLockedBalances[player] = 0
 
+  return True
+
+@external
+def emergencyOwnerWithdraw() -> bool:
+  # for what-ever reason, if something goes wrong and game is stuck or player balance are stuck
+  # we have this method to withdraw all the USDT and then handle the issue manually, or to rebalance
+  # onto an updated a fixed contract (this is meant to be used in real case of emergency)
+  assert msg.sender == self.owner, "Only owner can emergency withdraw"
+  self.usdtContract.transfer(self.owner, self.usdtContract.balanceOf(self))
   return True
 
 @internal
