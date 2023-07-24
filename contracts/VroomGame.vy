@@ -54,8 +54,8 @@ isPickingClosed: public(bool)
 
 VRFConsumer: public(VRFConsumerInterface)
 
-currentRoundPlayersCount: public(uint256)
-currentRoundPlayers: public(address[MAX_PLAYERS_PER_ROUND])
+currentRoundPlayersCount: uint256
+currentRoundPlayers: address[MAX_PLAYERS_PER_ROUND]
 
 @external
 def __init__(_vrfConsumerAddress: address, _usdtAddress: address):

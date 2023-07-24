@@ -149,10 +149,6 @@ contract("VroomGame::Unit", ([owner, player]) => {
     expect((await vroomGame.balanceOf(player)).toString()).to.equal(
       depositAmount.sub(betAmount).toString()
     );
-    expect((await vroomGame.currentRoundPlayersCount()).toString()).to.equal(
-      "1"
-    );
-    expect(await vroomGame.currentRoundPlayers(0)).to.equal(player);
   });
 
   it("should allow to bet again", async () => {
@@ -161,10 +157,6 @@ contract("VroomGame::Unit", ([owner, player]) => {
     expect((await vroomGame.balanceOf(player)).toString()).to.equal(
       depositAmount.sub(betAmount.mul(web3.utils.toBN(2))).toString()
     );
-    expect((await vroomGame.currentRoundPlayersCount()).toString()).to.equal(
-      "1"
-    );
-    expect(await vroomGame.currentRoundPlayers(0)).to.equal(player);
   });
 
   it("should allow to bet on same pick", async () => {
@@ -173,10 +165,6 @@ contract("VroomGame::Unit", ([owner, player]) => {
     expect((await vroomGame.balanceOf(player)).toString()).to.equal(
       depositAmount.sub(betAmount.mul(web3.utils.toBN(3))).toString()
     );
-    expect((await vroomGame.currentRoundPlayersCount()).toString()).to.equal(
-      "1"
-    );
-    expect(await vroomGame.currentRoundPlayers(0)).to.equal(player);
   });
 
   it("should be able to withdraw", async () => {
@@ -254,9 +242,6 @@ contract("VroomGame::Unit", ([owner, player]) => {
     );
 
     expect(await vroomGame.isPickingClosed()).to.equal(false);
-    expect((await vroomGame.currentRoundPlayersCount()).toString()).to.equal(
-      "0"
-    );
   });
 
   it("should allow players to bet for next round", async () => {
