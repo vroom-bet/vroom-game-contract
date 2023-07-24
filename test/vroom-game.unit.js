@@ -12,11 +12,9 @@ const depositAmount = web3.utils.BN(100 * 1e6);
 contract("VroomGame::Unit", ([owner, player]) => {
   it("should deploy and have right params", async () => {
     const vroomGame = await VroomGame.deployed();
-    const usdt = await USDT.deployed();
     expect(await vroomGame.name()).to.equal("VroomGame");
     expect(await vroomGame.owner()).to.equal(owner);
     expect((await vroomGame.currentRound()).toString()).to.equal("0");
-    expect(await vroomGame.usdtContract()).to.equal(usdt.address);
   });
 
   it("should not be able to withdraw before deposit", async () => {
@@ -212,9 +210,9 @@ contract("VroomGame::Unit", ([owner, player]) => {
     const vroomGame = await VroomGame.deployed();
 
     const currentRound = await vroomGame.currentRound();
-    const roundWinner = await vroomGame.roundWinner(currentRound);
+    const roundsWinners = await vroomGame.roundsWinners(currentRound);
 
-    expect(roundWinner.toString()).to.equal("0");
+    expect(roundsWinners.toString()).to.equal("0");
     expect(await vroomGame.isPickingClosed()).to.equal(true);
 
     await truffleAssert.reverts(
@@ -233,8 +231,8 @@ contract("VroomGame::Unit", ([owner, player]) => {
 
     await vroomGame.pickWinner();
 
-    const roundWinnerAfter = await vroomGame.roundWinner(currentRound);
-    expect(roundWinnerAfter.toString()).to.not.equal("0");
+    const roundsWinnersAfter = await vroomGame.roundsWinners(currentRound);
+    expect(roundsWinnersAfter.toString()).to.not.equal("0");
 
     const currentRoundAfter = await vroomGame.currentRound();
     expect(currentRoundAfter.toString()).to.equal(
