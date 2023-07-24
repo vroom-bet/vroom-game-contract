@@ -262,4 +262,30 @@ contract("VroomGame::Unit", ([owner, player]) => {
       "Round is not closed yet"
     );
   });
+
+  it("should be able to emergency unlock game", async () => {
+    const vroomGame = await VroomGame.deployed();
+
+    await truffleAssert.reverts(
+      vroomGame.emergencyUnlockGame({ from: player }),
+      "Only owner can unlock the game"
+    );
+
+    const beforeBalance = await vroomGame.balanceOf(player);
+    await vroomGame.emergencyUnlockGame();
+
+    expect(await vroomGame.isPickingClosed()).to.equal(true);
+    expect((await vroomGame.balanceOf(player)).toString()).to.equal(
+      beforeBalance.add(betAmount).toString()
+    );
+  });
+
+  it("should not allow to bet after emergency unlock", async () => {
+    const vroomGame = await VroomGame.deployed();
+    expect(await vroomGame.isPickingClosed()).to.equal(true);
+    await truffleAssert.reverts(
+      vroomGame.bet(1, betAmount, { from: player }),
+      "Round is closed"
+    );
+  });
 });

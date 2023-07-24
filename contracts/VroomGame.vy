@@ -38,7 +38,7 @@ event PlayerLost:
 event DustCollected:
   amount: uint256
 
-MAX_PLAYERS_PER_ROUND: constant(uint256) = 10_000
+MAX_PLAYERS_PER_ROUND: constant(uint256) = 1000
 
 name: public(String[32])
 balanceOf: public(HashMap[address, uint256])
@@ -56,6 +56,8 @@ VRFConsumer: public(VRFConsumerInterface)
 
 currentRoundPlayersCount: uint256
 currentRoundPlayers: address[MAX_PLAYERS_PER_ROUND]
+
+playersLockedBalances: HashMap[address, uint256]
 
 @external
 def __init__(_vrfConsumerAddress: address, _usdtAddress: address):
@@ -101,6 +103,7 @@ def bet(_pick: uint256, _amount: uint256) -> bool:
 
   # we pass _pick - 1, because the pick is 1 based but the array is 0 based
   self.roundPlayersPicks[self.currentRound][msg.sender][_pick - 1] += _amount
+  self.playersLockedBalances[msg.sender] += _amount
   self.balanceOf[msg.sender] -= _amount
   log Bet(msg.sender, _pick, _amount)
 
@@ -155,6 +158,31 @@ def pickWinner() -> uint256:
 
   return winner
 
+@external
+def emergencyUnlockGame() -> bool:
+  # this method is used to refund player balances stuck in a betting-round
+  # for instance if `pickWinner()` runs out of gas, we can call this method (bug in contract?)
+  # or if Chainlink VRF fails for some reason, we are relying on external services
+  # better be safe than sorry, right?
+  assert msg.sender == self.owner, "Only owner can unlock the game"
+  assert self.currentRound > 0, "Game has not started yet"
+
+  # unsure we pause the game
+  self.isPickingClosed = True
+
+  for i in range(MAX_PLAYERS_PER_ROUND):
+    if i >= self.currentRoundPlayersCount:
+      break
+
+    player: address = self.currentRoundPlayers[i]
+    lockedBalance: uint256 = self.playersLockedBalances[player]
+
+    if lockedBalance > 0:
+      self.balanceOf[player] += lockedBalance
+      self.playersLockedBalances[player] = 0
+
+  return True
+
 @internal
 def _hasPlayerPicked(_player: address) -> bool:
   arr: uint256[4] = self.roundPlayersPicks[self.currentRound][_player]
@@ -171,6 +199,9 @@ def _creditWinners(winner: uint256) -> bool:
     # stop loop if we reached the end of number of players in this round
     if i >= self.currentRoundPlayersCount:
       break
+
+    # unlock the player balance
+    self.playersLockedBalances[self.currentRoundPlayers[i]] = 0
 
     # sum the total amount of USDT in the winning picks
     player: address = self.currentRoundPlayers[i]
