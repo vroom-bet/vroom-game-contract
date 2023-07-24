@@ -69,14 +69,16 @@ def __init__(_vrfConsumerAddress: address, _usdtAddress: address):
   self.usdtContract = ERC20(_usdtAddress)
 
 @external
+@nonreentrant("deposit")
 def deposit(_amount: uint256) -> bool:
   assert _amount > 0, "Deposit must be greater than 0"
-  self.usdtContract.transferFrom(msg.sender, self, _amount)
   self.balanceOf[msg.sender] += _amount
+  self.usdtContract.transferFrom(msg.sender, self, _amount)
   log Deposit(msg.sender, _amount)
   return True
 
 @external
+@nonreentrant("withdraw")
 def withdraw(_amount: uint256) -> bool:
   assert _amount > 0, "Withdraw must be greater than 0"
   assert self.balanceOf[msg.sender] >= _amount, "Insufficient balance"
