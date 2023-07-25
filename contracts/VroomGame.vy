@@ -5,35 +5,35 @@ interface VRFConsumerInterface:
   def getRandomNumber() -> uint256: view
 
 event Deposit:
-  player: address
+  player: indexed(address)
   amount: uint256
 
 event Withdraw:
-  player: address
+  player: indexed(address)
   amount: uint256
 
 event Bet:
-  player: address
+  player: indexed(address)
   pick: uint256
   amount: uint256
   round: uint256
 
 event PickingClosed:
-  round: uint256
+  round: indexed(uint256)
 
 event PickingOpened:
-  round: uint256
+  round: indexed(uint256)
 
 event WinnerPicked:
-  round: uint256
-  winner: uint256
+  round: indexed(uint256)
+  winner: indexed(uint256)
 
 event PlayerWon:
-  player: address
+  player: indexed(address)
   amount: uint256
 
 event PlayerLost:
-  player: address
+  player: indexed(address)
   amount: uint256
 
 event DustCollected:
