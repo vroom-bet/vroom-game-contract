@@ -14,9 +14,9 @@ event Withdraw:
 
 event Bet:
   player: indexed(address)
-  pick: uint256
+  pick: indexed(uint256)
+  round: indexed(uint256)
   amount: uint256
-  round: uint256
 
 event PickingClosed:
   round: indexed(uint256)
