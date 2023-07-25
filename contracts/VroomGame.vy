@@ -106,7 +106,7 @@ def bet(_pick: uint256, _amount: uint256) -> bool:
   self.roundsPlayersPicks[self.currentRound][msg.sender][_pick - 1] += _amount
   self.playersLockedBalances[msg.sender] += _amount
   self.balanceOf[msg.sender] -= _amount
-  log Bet(msg.sender, _pick, _amount, self.currentRound)
+  log Bet(msg.sender, _pick, self.currentRound, _amount)
 
   return True
 
