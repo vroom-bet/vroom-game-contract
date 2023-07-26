@@ -6,9 +6,11 @@ const VRFMock = artifacts.require("VRFCoordinatorV2Mock");
 const depositAmount = web3.utils.BN(1000 * 1e6);
 const betAmount = web3.utils.BN(10 * 1e6);
 
+const taxWallet = "0x00357AeAD4fd588339a9E5aEA411F0356d085FbB";
+
 contract(
   "VroomGame::Simulation",
-  ([owner, playerA, playerB, playerC, playerD]) => {
+  ([owner, playerA, playerB, playerC, playerD, godfather]) => {
     before(async () => {
       const vroomGame = await VroomGame.deployed();
       const usdt = await USDT.deployed();
@@ -26,10 +28,10 @@ contract(
       await usdt.approve(vroomGame.address, depositAmount, { from: playerD });
 
       // deposit USDT to vroomGame
-      await vroomGame.deposit(depositAmount, { from: playerA });
-      await vroomGame.deposit(depositAmount, { from: playerB });
-      await vroomGame.deposit(depositAmount, { from: playerC });
-      await vroomGame.deposit(depositAmount, { from: playerD });
+      await vroomGame.methods['deposit(uint256,address)'](depositAmount, godfather, { from: playerA });
+      await vroomGame.methods['deposit(uint256,address)'](depositAmount, godfather, { from: playerB });
+      await vroomGame.methods['deposit(uint256,address)'](depositAmount, godfather, { from: playerC });
+      await vroomGame.methods['deposit(uint256,address)'](depositAmount, godfather, { from: playerD });
 
       // start the game
       await vroomGame.start();
@@ -89,8 +91,10 @@ contract(
       const vroomGame = await VroomGame.deployed();
       const usdt = await USDT.deployed();
 
-      // dust
-      const ownerBalance = await vroomGame.balanceOf(owner);
+      // tax + dust
+      const taxWalletBalance = await vroomGame.balanceOf(taxWallet);
+      // godfather
+      const godfatherBalance = await vroomGame.balanceOf(godfather);
       // players
       const playerABalance = await vroomGame.balanceOf(playerA);
       const playerBBalance = await vroomGame.balanceOf(playerB);
@@ -104,7 +108,8 @@ contract(
           .add(playerBBalance)
           .add(playerCBalance)
           .add(playerDBalance)
-          .add(ownerBalance)
+          .add(taxWalletBalance)
+          .add(godfatherBalance)
           .toString()
       ).to.equal(usdtBalance.toString());
     });
@@ -141,18 +146,10 @@ contract(
       );
     });
 
-    it("should allow owner to withdraw dust", async () => {
+    it("should have distributed USDT to tax wallet", async () => {
       const vroomGame = await VroomGame.deployed();
-      const usdt = await USDT.deployed();
-
-      const beforeUSDTBalance = await usdt.balanceOf(owner);
-      const ownerBalance = await vroomGame.balanceOf(owner);
-      await vroomGame.withdraw(ownerBalance, { from: owner });
-
-      expect((await vroomGame.balanceOf(owner)).toString()).to.equal("0");
-      expect((await usdt.balanceOf(owner)).toString()).to.equal(
-        beforeUSDTBalance.add(ownerBalance).toString()
-      );
+      const ownerBalance = await vroomGame.balanceOf(taxWallet);
+      expect(ownerBalance.toString()).to.not.equal("0");
     });
   }
 );

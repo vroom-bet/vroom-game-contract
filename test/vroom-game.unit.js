@@ -9,7 +9,7 @@ const VRFMock = artifacts.require("VRFCoordinatorV2Mock");
 const betAmount = web3.utils.BN(10 * 1e6);
 const depositAmount = web3.utils.BN(100 * 1e6);
 
-contract("VroomGame::Unit", ([owner, player]) => {
+contract("VroomGame::Unit", ([owner, player, randomAddress]) => {
   it("should deploy and have right params", async () => {
     const vroomGame = await VroomGame.deployed();
     expect(await vroomGame.name()).to.equal("VroomGame");
@@ -310,5 +310,41 @@ contract("VroomGame::Unit", ([owner, player]) => {
 
     const afterUSDTBalance = await usdt.balanceOf(owner);
     expect(afterUSDTBalance.gt(beforeUSDTBalance)).to.equal(true);
+  });
+
+  it("should let owner update tax wallet", async () => {
+    const vroomGame = await VroomGame.deployed();
+
+    await truffleAssert.reverts(
+      vroomGame.ownerSetTaxWallet(randomAddress, { from: player }),
+      "Only owner can set tax wallet"
+    );
+
+    await vroomGame.ownerSetTaxWallet(randomAddress);
+    expect(await vroomGame.winnersTaxWallet()).to.equal(randomAddress);
+  });
+
+  it("should let owner update winners tax percentage", async () => {
+    const vroomGame = await VroomGame.deployed();
+
+    await truffleAssert.reverts(
+      vroomGame.ownerSetWinnersTax(50, { from: player }),
+      "Only owner can set winners tax"
+    );
+
+    await vroomGame.ownerSetWinnersTax(50);
+    expect((await vroomGame.winnersTax()).toString()).to.equal("50");
+  });
+
+  it("should let owner update godfather tax percentage", async () => {
+    const vroomGame = await VroomGame.deployed();
+
+    await truffleAssert.reverts(
+      vroomGame.ownerSetGodfatherTax(50, { from: player }),
+      "Only owner can set godfather tax"
+    );
+
+    await vroomGame.ownerSetGodfatherTax(50);
+    expect((await vroomGame.godfatherTax()).toString()).to.equal("50");
   });
 });

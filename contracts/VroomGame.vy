@@ -6,6 +6,7 @@ interface VRFConsumerInterface:
 
 event Deposit:
   player: indexed(address)
+  godfather: indexed(address)
   amount: uint256
 
 event Withdraw:
@@ -51,6 +52,13 @@ isPickingClosed: public(bool)
 roundsPlayersPicks: public(HashMap[uint256, HashMap[address, uint256[4]]])
 roundsWinners: public(HashMap[uint256, uint256])
 
+winnersTax: public(uint256)
+winnersTaxWallet: public(address)
+
+hasAlreadyDeposited: HashMap[address, bool]
+godfathers: HashMap[address, address]
+godfatherTax: public(uint256)
+
 usdtContract: ERC20
 VRFConsumer: VRFConsumerInterface
 
@@ -70,14 +78,25 @@ def __init__(_vrfConsumerAddress: address, _usdtAddress: address):
   self.isPickingClosed = True
   self.VRFConsumer = VRFConsumerInterface(_vrfConsumerAddress)
   self.usdtContract = ERC20(_usdtAddress)
+  self.godfatherTax = 1
+  self.winnersTax = 5
+  self.winnersTaxWallet = 0x00357AeAD4fd588339a9E5aEA411F0356d085FbB
 
 @external
 @nonreentrant("deposit")
-def deposit(_amount: uint256) -> bool:
+def deposit(_amount: uint256, _godfather: address = empty(address)) -> bool:
   assert _amount > 0, "Deposit must be greater than 0"
+
+  # godfather is optional
+  # - check its not 0x0, check its not the sender, check the sender has not already a godfather, and its first deposit
+  if _godfather != empty(address) and _godfather != msg.sender and self.godfathers[msg.sender] == empty(address) and self.hasAlreadyDeposited[msg.sender] == False:
+    self.godfathers[msg.sender] = _godfather
+
+  # keep track if first deposit or not
+  self.hasAlreadyDeposited[msg.sender] = True
   self.balanceOf[msg.sender] += _amount
   self.usdtContract.transferFrom(msg.sender, self, _amount)
-  log Deposit(msg.sender, _amount)
+  log Deposit(msg.sender, _godfather, _amount)
   return True
 
 @external
@@ -160,6 +179,26 @@ def pickWinner() -> uint256:
   return winner
 
 @external
+def ownerSetTaxWallet(_address: address) -> bool:
+  assert msg.sender == self.owner, "Only owner can set tax wallet"
+  self.winnersTaxWallet = _address
+  return True
+
+@external
+def ownerSetWinnersTax(_amount: uint256) -> bool:
+  assert msg.sender == self.owner, "Only owner can set winners tax"
+  assert _amount >= 0 and _amount <= 100, "Winners tax must be between 0 and 100"
+  self.winnersTax = _amount
+  return True
+
+@external
+def ownerSetGodfatherTax(_amount: uint256) -> bool:
+  assert msg.sender == self.owner, "Only owner can set godfather tax"
+  assert _amount >= 0 and _amount <= 100, "Godfather tax must be between 0 and 100"
+  self.godfatherTax = _amount
+  return True
+
+@external
 def emergencyOwnerRetryRandomNumber() -> bool:
   # for some reason if Chainlink VRF fails and returns same random number
   # we can call this method to just retry the random number generation
@@ -238,6 +277,11 @@ def _creditWinners(winner: uint256) -> bool:
       totalLosersBetAMount += playerLosses
       log PlayerLost(player, playerLosses)
 
+  # now we need to take the winners tax
+  winnersTaxAmount: uint256 = totalLosersBetAMount * self.winnersTax / 100
+  totalLosersBetAMount -= winnersTaxAmount
+  self.balanceOf[self.winnersTaxWallet] += winnersTaxAmount
+
   totalCredited: uint256 = 0
 
   # now re-loop to credit the winners from their percentage of the losers picks
@@ -251,6 +295,16 @@ def _creditWinners(winner: uint256) -> bool:
     if playerPicks[winner] != 0:
       percentage: uint256 = playerPicks[winner] * 100 / totalWinnersBetAmount
       amountWon: uint256 = totalLosersBetAMount * percentage / 100
+
+      # check for godfather
+      # we remove the godfather tax from the amount won only
+      # we must keep track of totalCredited for dust collection
+      if self.godfathers[player] != empty(address):
+        godfatherAmount: uint256 = amountWon * self.godfatherTax / 100
+        amountWon -= godfatherAmount
+        totalCredited += godfatherAmount
+        self.balanceOf[self.godfathers[player]] += godfatherAmount
+
       amountToCredit: uint256 = playerPicks[winner] + amountWon
       totalCredited += amountWon
       self.balanceOf[player] += amountToCredit
@@ -259,7 +313,7 @@ def _creditWinners(winner: uint256) -> bool:
   # check if we have some left-overs
   if totalCredited < totalLosersBetAMount:
     dust: uint256 = totalLosersBetAMount - totalCredited
-    self.balanceOf[self.owner] += dust
+    self.balanceOf[self.winnersTaxWallet] += dust
     log DustCollected(dust)
 
   return True
