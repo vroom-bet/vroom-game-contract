@@ -18,8 +18,14 @@ module.exports = {
     },
     sepolia: {
       provider: () =>
-        new HDWalletProvider(process.env.MNEMONIC, process.env.RPC_URL),
+        new HDWalletProvider(process.env.MNEMONIC, process.env.SEPOLIA_RPC_URL),
       network_id: "11155111",
+      gas: 4465030,
+    },
+    arbitrum: {
+      provider: () =>
+        new HDWalletProvider(process.env.MNEMONIC, process.env.ARBITRUM_RPC_URL),
+      network_id: "42161",
       gas: 4465030,
     },
   },

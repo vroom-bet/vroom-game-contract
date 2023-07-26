@@ -19,21 +19,32 @@ module.exports = async function (deployer, network, accounts) {
     vrfSubscriptionId = 1;
   }
 
-  if (network.startsWith('sepolia')) {
+  if (network.startsWith("sepolia")) {
     vrfCoordinatorAddress = "0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625";
     vrfKeyHash =
       "0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c";
     vrfSubscriptionId = 3895;
   }
 
+  if (network.startsWith("arbitrum")) {
+    vrfCoordinatorAddress = "0x41034678D6C633D8a95c75e1138A360a28bA15d1";
+    vrfKeyHash =
+      "0x68d24f9a037a649944964c2a1ebd0b2918f4a243d2a99701cc22b548cf2daff0";
+    vrfSubscriptionId = 69;
+  }
+
   if (
     network === "test" ||
-    network.startsWith('sepolia') ||
+    network.startsWith("sepolia") ||
     network.startsWith("development")
   ) {
     await deployer.deploy(USDT);
     const usdt = await USDT.deployed();
     usdtAddress = usdt.address;
+  }
+
+  if (network.startsWith("arbitrum")) {
+    usdtAddress = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
   }
 
   if (!vrfSubscriptionId) throw new Error("vrfSubscriptionId not set");

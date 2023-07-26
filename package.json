@@ -7,7 +7,8 @@
     "compile": "rm -rf build/* && yarn truffle compile --all",
     "test": "truffle test --network test",
     "deploy:dev": "truffle migrate --reset --network development",
-    "deploy:sepolia": "truffle migrate --reset --network sepolia"
+    "deploy:sepolia": "truffle migrate --reset --network sepolia",
+    "deploy:arbitrum": "truffle migrate --reset --network arbitrum"
   },
   "dependencies": {
     "@truffle/hdwallet-provider": "^2.1.13",
